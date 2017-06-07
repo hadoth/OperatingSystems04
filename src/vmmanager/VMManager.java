@@ -9,4 +9,5 @@ public interface VMManager extends Observer {
     void run();
     String report();
     int[] getFaultPageCount();
+    int getTotalFaultPageCount();
 }
