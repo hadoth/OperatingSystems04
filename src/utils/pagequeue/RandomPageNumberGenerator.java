@@ -84,4 +84,51 @@ public class RandomPageNumberGenerator {
             e.printStackTrace();
         }
     }
+
+    public static void generateWithProcessUnequal(int processCount, String filePath) {
+        List<Integer> listOfPages = RandomPageNumberGenerator.read(filePath);
+        int maxValue = listOfPages.get(0);
+        int pretender;
+        Iterator<Integer> iterator = listOfPages.iterator();
+        while (iterator.hasNext()) {
+            if ((pretender = iterator.next()) > maxValue) {
+                maxValue = pretender;
+            }
+        }
+
+        int pagesPerProcess = maxValue / processCount;
+
+        List<Integer> listOfProcesses = new ArrayList<>();
+        for (Integer pageNumber : listOfPages) {
+            listOfProcesses.add(getProcessNumber(pageNumber, maxValue, processCount));
+        }
+
+        String outputFilePath = filePath.replace(".csv", "_uneven.csv");
+        File output = new File(outputFilePath);
+
+        try {
+            FileWriter fWriter = new FileWriter(output);
+            PrintWriter pWriter = new PrintWriter(fWriter);
+
+            output.createNewFile();
+            for (int i = 0; i < listOfProcesses.size(); i++) {
+                pWriter.println(listOfPages.get(i) + "," + listOfProcesses.get(i));
+            }
+
+            pWriter.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static int getProcessNumber(int pageNumber, int maxPage, int processCount){
+        int processNumber = 0;
+        int upperBound = maxPage/((int)Math.pow(2, 2 + processNumber));
+        while (pageNumber > upperBound && (processCount - 1) > processNumber){
+            processNumber++;
+            upperBound = upperBound + (maxPage/((int)Math.pow(2, 2 + processNumber)));
+        }
+        return processNumber;
+    }
 }

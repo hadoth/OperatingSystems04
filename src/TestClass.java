@@ -19,6 +19,6 @@ public class TestClass {
 //            }
 //        }
 //        System.out.println(count);
-        RandomPageNumberGenerator.generateWithProcessEqual(8, "pages.csv");
+        RandomPageNumberGenerator.generateWithProcessUnequal(8, "pages.csv");
     }
 }
