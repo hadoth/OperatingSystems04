@@ -4,18 +4,19 @@ import pagingalgorithm.PagingAlgorithm;
 import utils.observer.Observer;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by KPokomeda on 10.05.2017.
  */
 public class VMManager implements Observer {
     private PagingAlgorithm algorithm;
-    private ArrayList<Integer> callQueue;
+    private List<Integer> callQueue;
     private int errorCount;
 
-    public VMManager(PagingAlgorithm algorithm, ArrayList<Integer> callQueue){
+    public VMManager(PagingAlgorithm algorithm, List<Integer> callQueue){
         this.algorithm = algorithm;
-        this.callQueue = (ArrayList<Integer>)callQueue.clone();
+        this.callQueue = new ArrayList<>(callQueue);
         this.errorCount = 0;
         this.algorithm.addObserver(this);
     }

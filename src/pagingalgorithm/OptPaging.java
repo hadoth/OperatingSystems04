@@ -3,21 +3,22 @@ package pagingalgorithm;
 import utils.observer.Observer;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by KPokomeda on 10.05.2017.
  */
 public class OptPaging implements PagingAlgorithm {
-    private ArrayList<Integer> future;
-    private ArrayList<Integer> queue;
+    private List<Integer> future;
+    private List<Integer> queue;
     int maxSize;
-    private ArrayList<Observer> observers;
+    private List<Observer> observers;
 
-    public OptPaging(int frameNumber, ArrayList<Integer> future){
+    public OptPaging(int frameNumber, List<Integer> future){
         this.maxSize = frameNumber;
         this.queue = new ArrayList<>();
         this.observers = new ArrayList<>();
-        this.future = (ArrayList<Integer>)(future.clone());
+        this.future = new ArrayList<>(future);
     }
 
     @Override

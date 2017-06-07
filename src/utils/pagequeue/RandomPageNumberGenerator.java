@@ -2,13 +2,14 @@ package utils.pagequeue;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 /**
  * Created by KPokomeda on 10.05.2017.
  */
 public class RandomPageNumberGenerator {
-    public static ArrayList<Integer> read(String filePath){
+    public static List<Integer> read(String filePath){
         File output = new File(filePath);
         ArrayList<Integer> result = new ArrayList<>();
 
