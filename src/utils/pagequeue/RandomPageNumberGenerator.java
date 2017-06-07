@@ -1,5 +1,7 @@
 package utils.pagequeue;
 
+import utils.ReadInstruction;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -46,6 +48,25 @@ public class RandomPageNumberGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static List<ReadInstruction> readReadInstructions(String filePath){
+        File input = new File(filePath);
+        ArrayList<ReadInstruction> result = new ArrayList<>();
+
+        try {
+            FileReader fReader = new FileReader(input);
+            Scanner scanner = new Scanner(fReader);
+
+            while (scanner.hasNextInt()) result.add(new ReadInstruction(scanner.nextInt(), scanner.nextInt()));
+
+            scanner.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return result;
     }
 
     public static void generateWithProcessEqual(int processCount, String filePath) {

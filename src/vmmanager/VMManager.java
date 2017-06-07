@@ -1,6 +1,7 @@
 package vmmanager;
 
 import pagingalgorithm.PagingAlgorithm;
+import utils.ReadInstruction;
 import utils.observer.Observer;
 
 import java.util.ArrayList;
@@ -11,10 +12,10 @@ import java.util.List;
  */
 public class VMManager implements Observer {
     private PagingAlgorithm algorithm;
-    private List<Integer> callQueue;
+    private List<ReadInstruction> callQueue;
     private int errorCount;
 
-    public VMManager(PagingAlgorithm algorithm, List<Integer> callQueue){
+    public VMManager(PagingAlgorithm algorithm, List<ReadInstruction> callQueue){
         this.algorithm = algorithm;
         this.callQueue = new ArrayList<>(callQueue);
         this.errorCount = 0;
@@ -22,11 +23,11 @@ public class VMManager implements Observer {
     }
 
     public void run(){
-        for (Integer pageNumber : this.callQueue) this.algorithm.readFormPage(pageNumber);
+        for (ReadInstruction instruction : this.callQueue) this.algorithm.readFormPage(instruction);
     }
 
     @Override
-    public void update() {
+    public void update(int processNumber) {
         this.errorCount++;
     }
 

@@ -1,5 +1,6 @@
 package pagingalgorithm;
 
+import utils.ReadInstruction;
 import utils.observer.Observer;
 
 import java.util.ArrayList;
@@ -29,19 +30,20 @@ public class RLUPaging implements PagingAlgorithm {
     }
 
     @Override
-    public void notifyObservers() {
-        for (Observer observer : this.observers) observer.update();
+    public void notifyObservers(int processNumber) {
+        for (Observer observer : this.observers) observer.update(processNumber);
     }
 
     @Override
-    public void readFormPage(int pageNumber) {
+    public void readFormPage(ReadInstruction instruction) {
+        int pageNumber = instruction.getPageNumber();
         if (this.queue.contains(pageNumber)){
             this.queue.remove(this.queue.indexOf(pageNumber));
             this.queue.add(pageNumber);
 //            System.out.print(Arrays.toString(queue.toArray()));
 //            System.out.println("\t read: " + pageNumber);
         } else {
-            this.notifyObservers();
+            this.notifyObservers(instruction.getProcessId());
             if (this.queue.size() == this.maxSize) this.queue.remove(0);
             this.queue.add(pageNumber);
 //            System.out.print(Arrays.toString(queue.toArray()));
