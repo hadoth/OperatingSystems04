@@ -7,6 +7,7 @@ import vmmanager.VMManager;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by KPokomeda on 11.05.2017.
@@ -15,8 +16,8 @@ public class RandomTester {
     public static void main(String[] ags){
         int framesNumber = 1024;
         int repetitions = 50000;
-//        ArrayList<Integer> callQueue = RandomPageNumberGenerator.read("pages_85_10.csv");
-        ArrayList<Integer> callQueue = RandomPageNumberGenerator.read("pages.csv");
+//        List<Integer> callQueue = RandomPageNumberGenerator.read("pages_85_10.csv");
+        List<Integer> callQueue = RandomPageNumberGenerator.read("pages.csv");
 
         ArrayList<PagingAlgorithm> algorithms = new ArrayList<>();
 
