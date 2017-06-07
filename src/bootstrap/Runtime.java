@@ -15,8 +15,8 @@ public class Runtime {
         int framesNumber = 1024;
         RandomPageNumberGenerator.generate("test.csv", 5, 10);
 //        List<Integer> callQueue = RandomPageNumberGenerator.read("test.csv");
-//        List<Integer> callQueue = RandomPageNumberGenerator.read("pages.csv");
-        List<Integer> callQueue = RandomPageNumberGenerator.read("pages_85_10.csv");
+        List<Integer> callQueue = RandomPageNumberGenerator.read("pages.csv");
+//        List<Integer> callQueue = RandomPageNumberGenerator.read("pages_85_10.csv");
 
 //        callQueue = new ArrayList<>();
 //        for (int i = 0; i < 10; i++){
@@ -25,11 +25,7 @@ public class Runtime {
 
         List<PagingAlgorithm> algorithms = new ArrayList<>();
 
-        algorithms.add(new FifoPaging(framesNumber));
-        algorithms.add(new OptPaging(framesNumber, callQueue));
         algorithms.add(new RLUPaging(framesNumber));
-        algorithms.add(new SecondChancePaging(framesNumber));
-        algorithms.add(new RandPaging(framesNumber));
 
         for (PagingAlgorithm algorithm : algorithms) {
             VMManager manager = new VMManager(algorithm, callQueue);
