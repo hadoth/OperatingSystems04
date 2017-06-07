@@ -1,8 +1,9 @@
 package bootstrap;
 
-import pagingalgorithm.*;
+import pagingalgorithm.PagingAlgorithm;
+import utils.ReadInstruction;
 import utils.pagequeue.RandomPageNumberGenerator;
-import vmmanager.VMManager;
+import vmmanager.EvenShareManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,24 +14,13 @@ import java.util.List;
 public class Runtime {
     public static void main(String[] ags){
         int framesNumber = 1024;
-        RandomPageNumberGenerator.generate("test.csv", 5, 10);
-//        List<Integer> callQueue = RandomPageNumberGenerator.read("test.csv");
-        List<Integer> callQueue = RandomPageNumberGenerator.read("pages.csv");
-//        List<Integer> callQueue = RandomPageNumberGenerator.read("pages_85_10.csv");
+        List<ReadInstruction> instructionList = RandomPageNumberGenerator.readReadInstructions("pages_even.csv");
 
-//        callQueue = new ArrayList<>();
-//        for (int i = 0; i < 10; i++){
-//            for (int j = 0; j < 10; j++) callQueue.add(i);
-//        }
 
         List<PagingAlgorithm> algorithms = new ArrayList<>();
 
-        algorithms.add(new RLUPaging(framesNumber));
-
-        for (PagingAlgorithm algorithm : algorithms) {
-            VMManager manager = new VMManager(algorithm, callQueue);
-            manager.run();
-            System.out.println(manager.report());
-        }
+        EvenShareManager manager = new EvenShareManager(instructionList, framesNumber);
+        manager.run();
+        System.out.println(manager.report());
     }
 }
