@@ -58,7 +58,10 @@ public class RandomPageNumberGenerator {
             FileReader fReader = new FileReader(input);
             Scanner scanner = new Scanner(fReader);
 
-            while (scanner.hasNextInt()) result.add(new ReadInstruction(scanner.nextInt(), scanner.nextInt()));
+            while (scanner.hasNextLine()) {
+                String[] values = scanner.nextLine().split(",");
+                result.add(new ReadInstruction(Integer.valueOf(values[0]), Integer.valueOf(values[1])));
+            }
 
             scanner.close();
 
