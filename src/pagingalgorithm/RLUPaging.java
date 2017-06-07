@@ -60,4 +60,17 @@ public class RLUPaging implements PagingAlgorithm {
     public void clear() {
         this.queue.clear();
     }
+
+    @Override
+    public int getFrameCount() {
+        return this.maxSize;
+    }
+
+    @Override
+    public void setFrameCount(int frameCount) {
+        this.maxSize = frameCount;
+        while (this.queue.size() > this.maxSize){
+            this.queue.remove(0);
+        }
+    }
 }

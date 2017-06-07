@@ -10,4 +10,6 @@ public interface PagingAlgorithm extends Observable{
     void readFormPage(ReadInstruction instruction);
     String getName();
     void clear();
+    int getFrameCount();
+    void setFrameCount(int frameCount);
 }
