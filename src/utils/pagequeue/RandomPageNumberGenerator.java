@@ -83,7 +83,7 @@ public class RandomPageNumberGenerator {
             }
         }
 
-        int pagesPerProcess = maxValue / processCount;
+        int pagesPerProcess = (maxValue + 1) / processCount;
 
         List<Integer> listOfProcesses = new ArrayList<>();
         for (Integer pageNumber : listOfPages) {

@@ -1,8 +1,5 @@
 import utils.pagequeue.RandomPageNumberGenerator;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Created by KPokomeda on 10.05.2017.
  */
@@ -19,6 +16,6 @@ public class TestClass {
 //            }
 //        }
 //        System.out.println(count);
-        RandomPageNumberGenerator.generateWithProcessUnequal(8, "pages.csv");
+        RandomPageNumberGenerator.generateWithProcessEqual(8, "pages.csv");
     }
 }
