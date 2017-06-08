@@ -11,27 +11,32 @@ import java.util.List;
  * Created by Karol on 2017-06-08.
  */
 public class WorkingSetManager implements VMManager {
+    private final int framesAssigned;           // number of frames which have been assigned to the process
     private List<ReadInstruction> callQueue;    // queue of read instructions
-    private int[] faultCountLocal;              // list of  page fault errors recorded per process in single recording session
     private int[] faultCountGlobal;             // list of  page fault errors recorded in a whole run per process
     private int framesNumber;                   // number of frames available in the memory
-    private List<Integer> processesPresent;     // list of all processes in the run
-    private List<PagingAlgorithm> algorithms;   // list of paging algorithms - one per process
+    private int initialFrameShare;              // number of frames assigned to program at the start ot its existence
     private int recordingTime;                  // time of single recording session
-    private int notEnough;                      // number of page faults which result in frame number decrease
-    private int tooMany;                        // number of page faults which result in frame number increase
+    private List<Integer> processesPresent;     // list of active processes in the run
+    private List<Integer> processesWaiiting;    // list of processes waiting for process time
+    private List<PagingAlgorithm> algorithms;   // list of paging algorithms - one per process
+    private List<List<ReadInstruction>> waitingQueues;
 
-    public WorkingSetManager(List<ReadInstruction> callQueue, int framesNumber){
+    public WorkingSetManager(List<ReadInstruction> callQueue, int framesNumber, int recordingTime, int initialFrameShare){
         // assign arguments to variables
-        this.recordingTime = recordingTime;
-        this.notEnough = notEnough;
-        this.tooMany = tooMany;
         this.callQueue = new ArrayList<>(callQueue);
         this.framesNumber = framesNumber;
+        this.initialFrameShare = initialFrameShare;
+        this.recordingTime = recordingTime;
+
+        // initialize internal data
+        this.framesAssigned = 0;
 
         // initialization of internally used collections
         this.processesPresent = new ArrayList<>();
+        this.processesWaiiting = new ArrayList<>();
         this.algorithms = new ArrayList<>();
+        this.waitingQueues = new ArrayList<>();
 
         // find the number of processes in the run
         int processCount = 0;                                   // process counter
@@ -43,7 +48,6 @@ public class WorkingSetManager implements VMManager {
         }
 
         // initialization of internally used collections
-        this.faultCountLocal = new int[processCount];
         this.faultCountGlobal = new int[processCount];
 
         // initial assignment of fair shares
@@ -66,52 +70,33 @@ public class WorkingSetManager implements VMManager {
         // iterate over the queue and process the read instructions
         for (ReadInstruction instruction : this.callQueue) {
 
-            // use paging algorithm to process read instruction
-            this.algorithms.get(this.processesPresent.indexOf(instruction.getProcessId())).readFormPage(instruction);
+            if (this.processesPresent.contains(instruction.getProcessId())){
+                // if process is on a list of active processes use paging algorithm to process read instruction
+                this.algorithms.get(this.processesPresent.indexOf(instruction.getProcessId())).readFormPage(instruction);
+            } else if((this.framesNumber - this.framesAssigned) >= this.initialFrameShare){
+                // if process is not active, but number of unassigned frames is greater than initial share of frames
+                // then add process to list of active processes and handle read instruction
+                this.processesPresent.add(instruction.getProcessId());
+                this.algorithms.get(this.processesPresent.indexOf(instruction.getProcessId())).readFormPage(instruction);
+            } else if (this.processesWaiiting.contains(instruction.getProcessId())){
+                // if process is inactive and there is no space for it and it is already waiting in the queue
+                this.waitingQueues.get(this.processesWaiiting.indexOf(instruction.getProcessId())).add(instruction);
+            } else {
+                // process is not on waiting or active list and there is no memory to initialize;
+                List<ReadInstruction> temp = new ArrayList<>();
+                temp.add(instruction);
+                this.waitingQueues.add(temp);
+                this.processesPresent.add(instruction.getProcessId());
+            }
+
+            // TODO: create HashMap which stores data where key is counter value, and map value is page address; each time you read something, add it to the hash map, every check, delete values with read numbers smaller than
 
             // increment counter
             counter++;
 
-            // if counter value is greater than or equal to the duration of recording session check loal page fault counters and act accordingly
+            // if counter value is greater than or equal to the duration of recording session check local page fault counters and act accordingly
             if (counter >= this.recordingTime){
-                int tooMany = 0;            // number of processes which produced too many page faults
-                int framesToSpare = 0;      // number of framesToSpare
 
-                // count processes which are thrashing
-                for (int i = 0; i <this.faultCountLocal.length; i++){
-                    if (this.faultCountLocal[i] >= this.tooMany){
-                        tooMany++;
-                    }
-                }
-
-                // if there are processes thrashing, then make space for them
-                if (tooMany > 0) {
-                    for (int i = 0; i < this.faultCountLocal.length; i++) {
-                        if (this.faultCountLocal[i] <= this.notEnough) {
-                            int framesToCut = this.algorithms.get(i).getFrameCount();
-                            int newFrames = framesToCut / 2 > 0 ? framesToCut / 2 : 1;
-                            framesToSpare += (framesToCut - newFrames);
-                            this.algorithms.get(i).setFrameCount(newFrames);
-                        }
-                    }
-                }
-
-                int totalFrames = 0;
-                // assign new space to the processes and assert full use of memory
-                for (int i = 0; i < this.processesPresent.size(); i++) {
-                    if (this.faultCountLocal[i] >= this.tooMany){
-                        int evenShare = framesToSpare/(tooMany);
-                        this.algorithms.get(i).setFrameCount(this.algorithms.get(i).getFrameCount()+evenShare);
-                        framesToSpare -= evenShare;
-                        tooMany--;
-                    }
-                    totalFrames += this.algorithms.get(i).getFrameCount();
-                    this.faultCountLocal[i] = 0;
-                }
-
-                if (totalFrames != this.framesNumber){
-                    throw new AssertionError("residue frame number must equal 0: " + (this.framesNumber - totalFrames));
-                }
 
                 // restart recording session
                 counter = 0;
@@ -121,7 +106,6 @@ public class WorkingSetManager implements VMManager {
 
     @Override
     public void update(int processNumber) {
-        this.faultCountLocal[this.processesPresent.indexOf(processNumber)]++;
         this.faultCountGlobal[this.processesPresent.indexOf(processNumber)]++;
     }
 
