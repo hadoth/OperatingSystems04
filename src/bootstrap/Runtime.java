@@ -23,7 +23,18 @@ public class Runtime {
 
         managers.add(new EvenShareManager(instructionList, framesNumber));
         managers.add(new FairShareManager(instructionList, framesNumber));
-        managers.add(new PFFManager(instructionList, framesNumber));
+        managers.add(new PFFManager(instructionList, framesNumber, 100, 5, 30));
+        managers.add(new PFFManager(instructionList, framesNumber, 100, 10, 30));
+        managers.add(new PFFManager(instructionList, framesNumber, 100, 15, 30));
+
+        managers.add(new PFFManager(instructionList, framesNumber, 50, 10, 30));
+        managers.add(new PFFManager(instructionList, framesNumber, 100, 10, 30));
+        managers.add(new PFFManager(instructionList, framesNumber, 150, 10, 30));
+
+
+        managers.add(new PFFManager(instructionList, framesNumber, 100, 10, 15));
+        managers.add(new PFFManager(instructionList, framesNumber, 100, 10, 30));
+        managers.add(new PFFManager(instructionList, framesNumber, 100, 10, 45));
 
         for (VMManager manager : managers) {
             manager.run();
