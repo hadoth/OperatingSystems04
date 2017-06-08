@@ -4,6 +4,7 @@ import utils.ReadInstruction;
 import utils.pagequeue.RandomPageNumberGenerator;
 import vmmanager.EvenShareManager;
 import vmmanager.FairShareManager;
+import vmmanager.PFFManager;
 import vmmanager.VMManager;
 
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ public class Runtime {
 
         managers.add(new EvenShareManager(instructionList, framesNumber));
         managers.add(new FairShareManager(instructionList, framesNumber));
+        managers.add(new PFFManager(instructionList, framesNumber));
 
         for (VMManager manager : managers) {
             manager.run();
