@@ -1,9 +1,10 @@
 package bootstrap;
 
-import pagingalgorithm.PagingAlgorithm;
 import utils.ReadInstruction;
 import utils.pagequeue.RandomPageNumberGenerator;
 import vmmanager.EvenShareManager;
+import vmmanager.FairShareManager;
+import vmmanager.VMManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,13 +15,17 @@ import java.util.List;
 public class Runtime {
     public static void main(String[] ags){
         int framesNumber = 1024;
-        List<ReadInstruction> instructionList = RandomPageNumberGenerator.readReadInstructions("pages_even.csv");
+        List<ReadInstruction> instructionList = RandomPageNumberGenerator.readReadInstructions("pages_uneven.csv");
 
 
-        List<PagingAlgorithm> algorithms = new ArrayList<>();
+        List<VMManager> managers = new ArrayList<>();
 
-        EvenShareManager manager = new EvenShareManager(instructionList, framesNumber);
-        manager.run();
-        System.out.println(manager.report());
+        managers.add(new EvenShareManager(instructionList, framesNumber));
+        managers.add(new FairShareManager(instructionList, framesNumber));
+
+        for (VMManager manager : managers) {
+            manager.run();
+            System.out.println(manager.report());
+        }
     }
 }
