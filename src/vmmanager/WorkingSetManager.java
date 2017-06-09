@@ -11,16 +11,18 @@ import java.util.List;
  * Created by Karol on 2017-06-08.
  */
 public class WorkingSetManager implements VMManager {
-    private final int framesAssigned;           // number of frames which have been assigned to the process
+    private int framesAssigned;           // number of frames which have been assigned to the process
     private List<ReadInstruction> callQueue;    // queue of read instructions
     private int[] faultCountGlobal;             // list of  page fault errors recorded in a whole run per process
     private int framesNumber;                   // number of frames available in the memory
     private int initialFrameShare;              // number of frames assigned to program at the start ot its existence
     private int recordingTime;                  // time of single recording session
     private List<Integer> processesPresent;     // list of active processes in the run
-    private List<Integer> processesWaiiting;    // list of processes waiting for process time
+    private List<Integer> processesWaiting;    // list of processes waiting for process time
     private List<PagingAlgorithm> algorithms;   // list of paging algorithms - one per process
-    private List<List<ReadInstruction>> waitingQueues;
+    private List<List<ReadInstruction>> waitingQueues;      // list of lists of read instructions for waiting processes
+    private List<List<Integer>> listOfSets;                 // list of workingSets
+    private List<PagingAlgorithm> waitingAlgorithms;
 
     public WorkingSetManager(List<ReadInstruction> callQueue, int framesNumber, int recordingTime, int initialFrameShare){
         // assign arguments to variables
@@ -34,9 +36,10 @@ public class WorkingSetManager implements VMManager {
 
         // initialization of internally used collections
         this.processesPresent = new ArrayList<>();
-        this.processesWaiiting = new ArrayList<>();
+        this.processesWaiting = new ArrayList<>();
         this.algorithms = new ArrayList<>();
         this.waitingQueues = new ArrayList<>();
+        this.waitingAlgorithms = new ArrayList<>();
 
         // find the number of processes in the run
         int processCount = 0;                                   // process counter
@@ -46,60 +49,77 @@ public class WorkingSetManager implements VMManager {
                 processCount++;
             }
         }
-
-        // initialization of internally used collections
-        this.faultCountGlobal = new int[processCount];
-
-        // initial assignment of fair shares
-        for (int i = 0; i < this.processesPresent.size(); i++){
-            int evenShare = framesNumber/(this.processesPresent.size() - i);
-            this.algorithms.add(new RLUPaging(evenShare));
-            this.algorithms.get(i).addObserver(this);
-            framesNumber -= evenShare;
-        }
-
-        // assertion
-        if (framesNumber != 0){
-            throw new AssertionError("residue frame number must equal 0: " + framesNumber);
-        }
     }
 
     public void run(){
         int counter = 0;            // read instruction counter
 
         // iterate over the queue and process the read instructions
-        for (ReadInstruction instruction : this.callQueue) {
-
+        while (!this.callQueue.isEmpty()) {
+            ReadInstruction instruction = this.callQueue.remove(0);
             if (this.processesPresent.contains(instruction.getProcessId())){
                 // if process is on a list of active processes use paging algorithm to process read instruction
-                this.algorithms.get(this.processesPresent.indexOf(instruction.getProcessId())).readFormPage(instruction);
+                int processIndex = this.processesPresent.indexOf(instruction.getProcessId());
+                this.algorithms.get(processIndex).readFormPage(instruction);
+                if (!this.listOfSets.get(processIndex).contains(instruction.getPageNumber())){
+                    this.listOfSets.get(processIndex).add(instruction.getPageNumber());
+                }
+
+                // increment counter
+                counter++;
             } else if((this.framesNumber - this.framesAssigned) >= this.initialFrameShare){
                 // if process is not active, but number of unassigned frames is greater than initial share of frames
                 // then add process to list of active processes and handle read instruction
                 this.processesPresent.add(instruction.getProcessId());
+                ArrayList<Integer> temp = new ArrayList<>();
+                temp.add(instruction.getPageNumber());
+                this.listOfSets.add(temp);
+                this.algorithms.add(new RLUPaging(this.initialFrameShare));
                 this.algorithms.get(this.processesPresent.indexOf(instruction.getProcessId())).readFormPage(instruction);
-            } else if (this.processesWaiiting.contains(instruction.getProcessId())){
+                this.framesAssigned += this.initialFrameShare;
+
+                // increment counter
+                counter++;
+            } else if (this.processesWaiting.contains(instruction.getProcessId())){
                 // if process is inactive and there is no space for it and it is already waiting in the queue
-                this.waitingQueues.get(this.processesWaiiting.indexOf(instruction.getProcessId())).add(instruction);
+                this.waitingQueues.get(this.processesWaiting.indexOf(instruction.getProcessId())).add(instruction);
             } else {
                 // process is not on waiting or active list and there is no memory to initialize;
                 List<ReadInstruction> temp = new ArrayList<>();
                 temp.add(instruction);
                 this.waitingQueues.add(temp);
+                this.waitingAlgorithms.add(new RLUPaging(this.initialFrameShare));
                 this.processesPresent.add(instruction.getProcessId());
             }
 
-            // TODO: create HashMap which stores data where key is counter value, and map value is page address; each time you read something, add it to the hash map, every check, delete values with read numbers smaller than
+            // at the end of each session
+            if ((counter%this.recordingTime) == 0){
+                // iterate over active processes and update working sets size
+                for (int i = 0; i < this.processesPresent.size(); i++){
+                    int framesOld = this.algorithms.get(i).getFrameCount();
+                    int framesNew = this.listOfSets.get(i).size();
+                    this.listOfSets.get(i).clear();
+                    this.framesAssigned -= framesOld;
+                    this.framesAssigned += framesNew;
+                    this.algorithms.get(i).setFrameCount(framesNew);
+                }
 
-            // increment counter
-            counter++;
+                // if there active processes require more space than available, then remove first one and check again
+                while (this.framesAssigned > this.framesNumber){
+                    this.processesWaiting.add(this.processesPresent.remove(0));
+                    PagingAlgorithm algorithm = this.algorithms.remove(0);
+                    this.framesAssigned -= algorithm.getFrameCount();
+                    this.waitingAlgorithms.add(algorithm);
+                }
 
-            // if counter value is greater than or equal to the duration of recording session check local page fault counters and act accordingly
-            if (counter >= this.recordingTime){
+                boolean flag = false;
+                while (this.framesNumber -this.framesAssigned >= this.initialFrameShare && !flag){
+                    for (int i = 0; i < this.processesWaiting.size(); i++){
+                        if (this.waitingAlgorithms.get(i).getFrameCount() < this.framesNumber){
 
-
-                // restart recording session
-                counter = 0;
+                        }
+                    }
+                }
             }
         }
     }
