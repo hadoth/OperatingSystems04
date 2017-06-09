@@ -2,10 +2,7 @@ package bootstrap;
 
 import utils.ReadInstruction;
 import utils.pagequeue.RandomPageNumberGenerator;
-import vmmanager.EvenShareManager;
-import vmmanager.FairShareManager;
-import vmmanager.PFFManager;
-import vmmanager.VMManager;
+import vmmanager.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +32,7 @@ public class Runtime {
         managers.add(new PFFManager(instructionList, framesNumber, 100, 10, 15));
         managers.add(new PFFManager(instructionList, framesNumber, 100, 10, 30));
         managers.add(new PFFManager(instructionList, framesNumber, 100, 10, 45));
+        managers.add(new WorkingSetManager(instructionList, framesNumber, 100, 128));
 
         for (VMManager manager : managers) {
             manager.run();

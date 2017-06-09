@@ -23,6 +23,7 @@ public class WorkingSetManager implements VMManager {
     private List<List<ReadInstruction>> waitingQueues;      // list of lists of read instructions for waiting processes
     private List<List<Integer>> listOfSets;                 // list of workingSets
     private List<PagingAlgorithm> waitingAlgorithms;
+    private int queueSize;
 
     public WorkingSetManager(List<ReadInstruction> callQueue, int framesNumber, int recordingTime, int initialFrameShare){
         // assign arguments to variables
@@ -30,6 +31,7 @@ public class WorkingSetManager implements VMManager {
         this.framesNumber = framesNumber;
         this.initialFrameShare = initialFrameShare;
         this.recordingTime = recordingTime;
+        this.queueSize = this.callQueue.size();
 
         // initialize internal data
         this.framesAssigned = 0;
@@ -40,15 +42,7 @@ public class WorkingSetManager implements VMManager {
         this.algorithms = new ArrayList<>();
         this.waitingQueues = new ArrayList<>();
         this.waitingAlgorithms = new ArrayList<>();
-
-        // find the number of processes in the run
-        int processCount = 0;                                   // process counter
-        for (ReadInstruction instruction : callQueue) {
-            if (!processesPresent.contains(instruction.getProcessId())){
-                this.processesPresent.add(instruction.getProcessId());
-                processCount++;
-            }
-        }
+        this.listOfSets = new ArrayList<>();
     }
 
     public void run(){
@@ -104,7 +98,7 @@ public class WorkingSetManager implements VMManager {
                     this.algorithms.get(i).setFrameCount(framesNew);
                 }
 
-                // if there active processes require more space than available, then remove first one and check again
+                // if all active processes require more space than what is available, then remove first one and check again
                 while (this.framesAssigned > this.framesNumber){
                     this.processesWaiting.add(this.processesPresent.remove(0));
                     PagingAlgorithm algorithm = this.algorithms.remove(0);
@@ -112,11 +106,23 @@ public class WorkingSetManager implements VMManager {
                     this.waitingAlgorithms.add(algorithm);
                 }
 
-                boolean flag = false;
-                while (this.framesNumber -this.framesAssigned >= this.initialFrameShare && !flag){
+                // if there is more space than the initial frame share, then add process from waiting list
+                boolean isChecked = true;           // flag which states if all processes have been set
+                while (this.framesNumber -this.framesAssigned >= this.initialFrameShare || !isChecked){
+                    isChecked = true;
                     for (int i = 0; i < this.processesWaiting.size(); i++){
-                        if (this.waitingAlgorithms.get(i).getFrameCount() < this.framesNumber){
-
+                        if (this.waitingAlgorithms.get(i).getFrameCount() <= this.framesNumber - this.framesAssigned){
+                            isChecked = false;
+                            List<ReadInstruction> listToAdd = this.waitingQueues.remove(0);
+                            int processToAdd = this.processesWaiting.remove(0);
+                            PagingAlgorithm algorithmToAdd = this.waitingAlgorithms.remove(0);
+                            while (!listToAdd.isEmpty()){
+                                this.callQueue.add(0, listToAdd.remove(listToAdd.size()-1));
+                            }
+                            this.processesPresent.add(processToAdd);
+                            this.processesPresent.add(processToAdd);
+                            this.algorithms.add(algorithmToAdd);
+                            this.framesAssigned += algorithmToAdd.getFrameCount();
                         }
                     }
                 }
@@ -132,7 +138,7 @@ public class WorkingSetManager implements VMManager {
     public String report(){
         StringBuilder result = new StringBuilder();
         result.append("Paging algorithm executed ");
-        result.append(this.callQueue.size());
+        result.append(this.queueSize);
         result.append(" page calls, resulting with ");
         result.append(this.getTotalFaultPageCount());
         result.append(" total page faults.");
