@@ -5,7 +5,9 @@ import pagingalgorithm.RLUPaging;
 import utils.ReadInstruction;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Karol on 2017-06-08.
@@ -13,7 +15,7 @@ import java.util.List;
 public class WorkingSetManager implements VMManager {
     private int framesAssigned;           // number of frames which have been assigned to the process
     private List<ReadInstruction> callQueue;    // queue of read instructions
-    private int[] faultCountGlobal;             // list of  page fault errors recorded in a whole run per process
+    private Map<Integer, Integer> faultCountGlobal;             // list of  page fault errors recorded in a whole run per process
     private int framesNumber;                   // number of frames available in the memory
     private int initialFrameShare;              // number of frames assigned to program at the start ot its existence
     private int recordingTime;                  // time of single recording session
@@ -24,6 +26,7 @@ public class WorkingSetManager implements VMManager {
     private List<List<Integer>> listOfSets;                 // list of workingSets
     private List<PagingAlgorithm> waitingAlgorithms;
     private int queueSize;
+    private int masterFault;
 
     public WorkingSetManager(List<ReadInstruction> callQueue, int framesNumber, int recordingTime, int initialFrameShare){
         // assign arguments to variables
@@ -35,6 +38,7 @@ public class WorkingSetManager implements VMManager {
 
         // initialize internal data
         this.framesAssigned = 0;
+        this.masterFault = 0;
 
         // initialization of internally used collections
         this.processesPresent = new ArrayList<>();
@@ -43,6 +47,7 @@ public class WorkingSetManager implements VMManager {
         this.waitingQueues = new ArrayList<>();
         this.waitingAlgorithms = new ArrayList<>();
         this.listOfSets = new ArrayList<>();
+        this.faultCountGlobal = new HashMap<>();
     }
 
     public void run(){
@@ -68,7 +73,9 @@ public class WorkingSetManager implements VMManager {
                 ArrayList<Integer> temp = new ArrayList<>();
                 temp.add(instruction.getPageNumber());
                 this.listOfSets.add(temp);
-                this.algorithms.add(new RLUPaging(this.initialFrameShare));
+                PagingAlgorithm algorithm = new RLUPaging(this.initialFrameShare);
+                algorithm.addObserver(this);
+                this.algorithms.add(algorithm);
                 this.algorithms.get(this.processesPresent.indexOf(instruction.getProcessId())).readFormPage(instruction);
                 this.framesAssigned += this.initialFrameShare;
 
@@ -83,15 +90,15 @@ public class WorkingSetManager implements VMManager {
                 temp.add(instruction);
                 this.waitingQueues.add(temp);
                 this.waitingAlgorithms.add(new RLUPaging(this.initialFrameShare));
-                this.processesPresent.add(instruction.getProcessId());
+                this.processesWaiting.add(instruction.getProcessId());
             }
 
             // at the end of each session
-            if ((counter%this.recordingTime) == 0){
+            if (counter == this.recordingTime){
                 // iterate over active processes and update working sets size
                 for (int i = 0; i < this.processesPresent.size(); i++){
                     int framesOld = this.algorithms.get(i).getFrameCount();
-                    int framesNew = this.listOfSets.get(i).size();
+                    int framesNew = this.listOfSets.get(i).size() >= 10 ? this.listOfSets.get(i).size() : 10;
                     this.listOfSets.get(i).clear();
                     this.framesAssigned -= framesOld;
                     this.framesAssigned += framesNew;
@@ -107,12 +114,12 @@ public class WorkingSetManager implements VMManager {
                 }
 
                 // if there is more space than the initial frame share, then add process from waiting list
-                boolean isChecked = true;           // flag which states if all processes have been set
-                while (this.framesNumber -this.framesAssigned >= this.initialFrameShare || !isChecked){
-                    isChecked = true;
+                boolean hasChanged = true;           // flag which states if all processes have been set
+                while (this.framesNumber - this.framesAssigned >= this.initialFrameShare && hasChanged){
+                    hasChanged = false;
                     for (int i = 0; i < this.processesWaiting.size(); i++){
                         if (this.waitingAlgorithms.get(i).getFrameCount() <= this.framesNumber - this.framesAssigned){
-                            isChecked = false;
+                            hasChanged = true;
                             List<ReadInstruction> listToAdd = this.waitingQueues.remove(0);
                             int processToAdd = this.processesWaiting.remove(0);
                             PagingAlgorithm algorithmToAdd = this.waitingAlgorithms.remove(0);
@@ -120,19 +127,21 @@ public class WorkingSetManager implements VMManager {
                                 this.callQueue.add(0, listToAdd.remove(listToAdd.size()-1));
                             }
                             this.processesPresent.add(processToAdd);
-                            this.processesPresent.add(processToAdd);
                             this.algorithms.add(algorithmToAdd);
                             this.framesAssigned += algorithmToAdd.getFrameCount();
                         }
                     }
                 }
+
+                counter = 0;
             }
         }
     }
 
     @Override
     public void update(int processNumber) {
-        this.faultCountGlobal[this.processesPresent.indexOf(processNumber)]++;
+        this.masterFault++;
+        this.faultCountGlobal.put(processNumber, this.faultCountGlobal.getOrDefault(processNumber,0) + 1);
     }
 
     public String report(){
@@ -147,14 +156,18 @@ public class WorkingSetManager implements VMManager {
 
     @Override
     public int[] getFaultPageCount() {
-        return this.faultCountGlobal;
+        int[] result = new int[this.faultCountGlobal.size()];
+        for (int i = 0; i <this.processesPresent.size(); i++){
+            result[i] = this.faultCountGlobal.get(this.processesPresent.get(i));
+        }
+        return result;
     }
 
     @Override
     public int getTotalFaultPageCount() {
         int result = 0;
-        for (int count : this.faultCountGlobal){
-            result += count;
+        for (int key : this.faultCountGlobal.keySet()){
+            result += this.faultCountGlobal.get(key);
         }
         return result;
     }
